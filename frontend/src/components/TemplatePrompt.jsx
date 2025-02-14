@@ -56,9 +56,9 @@ const TemplatePrompt = ({ open, setOpen, buttonName }) => {
         <DrawerBody>
             <CheckboxGroup colorScheme='green'>
                 <Stack spacing={4} direction="column">  {/* Ensure the direction is always 'column' */}
-                    <Checkbox value='naruto'>Naruto</Checkbox>
-                    <Checkbox value='sasuke'>Sasuke</Checkbox>
-                    <Checkbox value='kakashi'>Kakashi</Checkbox>
+                    <Checkbox value='option1'>Option</Checkbox>
+                    <Checkbox value='option2'>Option</Checkbox>
+                    <Checkbox value='option3'>Option</Checkbox>
                 </Stack>
             </CheckboxGroup>
           
