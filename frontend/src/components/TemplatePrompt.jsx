@@ -11,27 +11,45 @@ import {
   DrawerRoot,
   DrawerTitle,
   DrawerTrigger,
-  CheckboxGroup,
   Stack,
 } from '@chakra-ui/react'
 
-import { Checkbox } from "./ui/checkbox"
+
+import { Radio, RadioGroup } from "./ui/radio";
 
 
-const TemplatePrompt = ({ open, setOpen, buttonName }) => {
+const TemplatePrompt = ({ open, setOpen, buttonName, onPromptSelect }) => {
+
+  const [prompts, setPrompts] = useState([]);
 
 
-  const prompts = [
-    "What is your goal today?",
-    "How can we assist you?",
-    "Do you need help with your project?",
-    "Would you like some workout advice?",
-    "Are you interested in learning more about the app?"
-  ]
+  useEffect(() => {
+    const fetchPrompts = async () => {
+      try {
+        const response = await fetch("http://localhost:5000/api/prompts"); // Your route is /prompts
+        if (!response.ok) {
+          throw new Error(`Failed to fetch prompts: ${response.status}`);
+        }
+        const data = await response.json();
+        const processedPrompts = data.map((item) => item.prompt);
+        setPrompts(processedPrompts);
+      } catch (error) {
+        console.log("Error fetching prompts:");
+      }
+    };
 
-  const handleSelect = (prompt) => {
-    setSelectedPrompt(prompt);
-    alert(`Selected prompt: ${prompt}`);
+    fetchPrompts();
+  }, []); // Run only once on component mount
+
+  const [selectedPrompt, setSelectedPrompt] = useState("");
+
+  const handleRadioChange = (value) => {
+    setSelectedPrompt(value.target.value); // Update state on radio selection
+  };
+
+  const handleSubmit = () => {
+    onPromptSelect(selectedPrompt);
+    setSelectedPrompt("");
   };
 
  return (
@@ -54,20 +72,24 @@ const TemplatePrompt = ({ open, setOpen, buttonName }) => {
           <DrawerTitle>Select a Template Prompt</DrawerTitle>
         </DrawerHeader>
         <DrawerBody>
-            <CheckboxGroup colorScheme='green'>
-                <Stack spacing={4} direction="column">  {/* Ensure the direction is always 'column' */}
-                    <Checkbox value='option1'>Option</Checkbox>
-                    <Checkbox value='option2'>Option</Checkbox>
-                    <Checkbox value='option3'>Option</Checkbox>
-                </Stack>
-            </CheckboxGroup>
+            <RadioGroup onChange={handleRadioChange} colorScheme='green'>
+              <Stack spacing={4} direction="column">
+                {prompts.map((prompt, index) => (
+                  <Radio key={index} value={prompt}>
+                    {prompt}
+                  </Radio>
+                ))}
+              </Stack>
+            </RadioGroup>
           
         </DrawerBody>
         <DrawerFooter>
           <DrawerActionTrigger asChild>
             <Button variant="outline">Cancel</Button>
           </DrawerActionTrigger>
-          <Button>Submit</Button>
+          <DrawerActionTrigger asChild>
+            <Button onClick={handleSubmit}>Submit</Button>
+          </DrawerActionTrigger>
         </DrawerFooter>
         <DrawerCloseTrigger />
       </DrawerContent>

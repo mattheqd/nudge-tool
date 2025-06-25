@@ -1,30 +1,17 @@
-import React from "react";
-import { Box, Flex, Text } from "@chakra-ui/react";
+import { Box, Flex } from "@chakra-ui/react";
 import TextScratchpad from "../Components/TextScratchpad";
 import Chatbot from "../Components/Chatbot";
 
 const HomePage = () => {
   return (
-    <Box bg="gray.50" minHeight="100vh" p={4}>
-      <Flex
-        direction="column"
-        alignItems="center"
-        justifyContent="center"
-        height="100%"
-      >
-        <Flex
-          direction="row"
-          gap={6}
-          alignItems="flex-start"
-          justifyContent="center"
-          width="100%"
-        >
-          <TextScratchpad />
-          <Chatbot />
-        </Flex>
-      </Flex>
-      
-    </Box>
+    <Flex width="100vw" height="100vh" minHeight="100vh" m={0} p={0}>
+      <Box flex="1" height="100vh" minHeight="100vh" minWidth={0}>
+        <TextScratchpad />
+      </Box>
+      <Box flex="1" height="100vh" minHeight="100vh" minWidth={0}>
+        <Chatbot />
+      </Box>
+    </Flex>
   );
 };
 

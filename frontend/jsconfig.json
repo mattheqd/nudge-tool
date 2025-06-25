@@ -1,11 +1,13 @@
 {
-    "compilerOptions": {
-      "target": "ESNext",
-      "module": "ESNext",
-      "moduleResolution": "Bundler",
-      "skipLibCheck": true,
-      "paths": {
-        "@/*": ["./src/*"]
-      }
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "forceConsistentCasingInFileNames": false,
+    "skipLibCheck": true,
+    "jsx": "react-jsx",  // Enable JSX for React 17+
+    "paths": {
+      "@/*": ["./src/*"]
     }
   }
+}

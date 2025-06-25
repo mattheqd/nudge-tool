@@ -1,0 +1,17 @@
+[
+    {
+      "prompt": "What is your goal today?",
+      "category": "General",
+      "usageCount": 0
+    },
+    {
+      "prompt": "How can we assist you?",
+      "category": "General",
+      "usageCount": 0
+    },
+    {
+      "prompt": "Do you need help with your project?",
+      "category": "General",
+      "usageCount": 0
+    }
+  ]

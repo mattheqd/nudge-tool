@@ -1,10 +1,25 @@
 'use client'
 
-import { ClientOnly, IconButton, Skeleton } from '@chakra-ui/react'
+import { IconButton, Skeleton } from '@chakra-ui/react'
 import { ThemeProvider, useTheme } from 'next-themes'
 
 import * as React from 'react'
 import { LuMoon, LuSun } from 'react-icons/lu'
+
+// Simple ClientOnly component for hydration safety
+function ClientOnly({ children, fallback = null }) {
+  const [hasMounted, setHasMounted] = React.useState(false)
+
+  React.useEffect(() => {
+    setHasMounted(true)
+  }, [])
+
+  if (!hasMounted) {
+    return fallback
+  }
+
+  return children
+}
 
 export function ColorModeProvider(props) {
   return (
