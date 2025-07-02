@@ -8,23 +8,39 @@ import {
   HStack,
   VStack,
   Tooltip,
+  useToast,
 } from '@chakra-ui/react';
 import acceptIcon from '../assets/accept.png';
 import dismissIcon from '../assets/dismiss.png';
+import { sessionApi } from '../../api/sessionApi.js';
 
-const ExpandableCards = () => {
+const ExpandableCards = ({ sessionId, onCardCountChange }) => {
   const [cards, setCards] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const toast = useToast();
+
+  console.log('ExpandableCards sessionId:', sessionId);
 
   useEffect(() => {
     if (cards.length === 0) fetchNudges();
     // eslint-disable-next-line
   }, []);
 
+  // Notify parent of card count changes
+  useEffect(() => {
+    if (onCardCountChange) {
+      onCardCountChange(cards.length);
+    }
+  }, [cards, onCardCountChange]);
+
   const fetchNudges = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch("http://localhost:5000/api/random");
+      const url = sessionId 
+        ? `http://localhost:5000/api/random?sessionId=${sessionId}`
+        : "http://localhost:5000/api/random";
+      
+      const response = await fetch(url);
       if (!response.ok) throw new Error("Failed to fetch nudge");
       const data = await response.json();
       setCards(prev => [...prev, {
@@ -32,6 +48,7 @@ const ExpandableCards = () => {
         title: data.category || 'Nudge',
         shortDescription: data.text,
         fullContent: data.text,
+        nudgeId: data._id,
       }]);
     } catch (error) {
       console.error("Error fetching nudge:", error);
@@ -40,14 +57,54 @@ const ExpandableCards = () => {
     }
   };
 
-  const handleAccept = (cardId) => {
-    setCards(prev => prev.filter(card => card.id !== cardId));
-    // Optionally: handle accept logic
+  const handleAccept = async (card) => {
+    console.log('Accepting card:', card);
+    setCards(prev => prev.filter(c => c.id !== card.id));
+    
+    // Track card interaction if session exists
+    if (sessionId) {
+      try {
+        const cardData = {
+          cardId: card.id.toString(),
+          cardTitle: card.title,
+          cardContent: card.fullContent,
+          action: 'accept',
+          nudgeId: card.nudgeId
+        };
+        console.log('Tracking card interaction:', cardData);
+        await sessionApi.addCardInteraction(sessionId, cardData);
+        console.log('Card interaction tracked successfully');
+      } catch (error) {
+        console.error('Error tracking card interaction:', error);
+      }
+    } else {
+      console.log('No sessionId available for tracking');
+    }
   };
 
-  const handleDismiss = (cardId) => {
-    setCards(prev => prev.filter(card => card.id !== cardId));
-    // Optionally: handle dismiss logic
+  const handleDismiss = async (card) => {
+    console.log('Dismissing card:', card);
+    setCards(prev => prev.filter(c => c.id !== card.id));
+    
+    // Track card interaction if session exists
+    if (sessionId) {
+      try {
+        const cardData = {
+          cardId: card.id.toString(),
+          cardTitle: card.title,
+          cardContent: card.fullContent,
+          action: 'dismiss',
+          nudgeId: card.nudgeId
+        };
+        console.log('Tracking card interaction:', cardData);
+        await sessionApi.addCardInteraction(sessionId, cardData);
+        console.log('Card interaction tracked successfully');
+      } catch (error) {
+        console.error('Error tracking card interaction:', error);
+      }
+    } else {
+      console.log('No sessionId available for tracking');
+    }
   };
 
   return (
@@ -93,7 +150,7 @@ const ExpandableCards = () => {
                   icon={<img src={acceptIcon} alt="Accept" width={28} height={28} />}
                   aria-label="Accept"
                   variant="ghost"
-                  onClick={() => handleAccept(card.id)}
+                  onClick={() => handleAccept(card)}
                   _hover={{ bg: 'gray.100' }}
                   borderRadius="full"
                 />
@@ -103,7 +160,7 @@ const ExpandableCards = () => {
                   icon={<img src={dismissIcon} alt="Dismiss" width={28} height={28} />}
                   aria-label="Dismiss"
                   variant="ghost"
-                  onClick={() => handleDismiss(card.id)}
+                  onClick={() => handleDismiss(card)}
                   _hover={{ bg: 'gray.100' }}
                   borderRadius="full"
                 />

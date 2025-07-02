@@ -5,17 +5,19 @@ import HomePage from "./pages/HomePage"
 import LoginPage from "./pages/LoginPage"
 import SignupPage from "./pages/SignupPage"
 import Navbar from "./components/Navbar"
+import { SessionProvider } from "./context/SessionContext"
 
 function App() {
   return (
-    <Box minH={"100vh"}>
-
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/signup" element={<SignupPage />} />
-      </Routes>
-    </Box>
+    <SessionProvider>
+      <Box minH={"100vh"}>
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<SignupPage />} />
+        </Routes>
+      </Box>
+    </SessionProvider>
   )
 }
 

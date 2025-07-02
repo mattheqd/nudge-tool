@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   VStack,
@@ -19,18 +19,61 @@ import { FaArrowAltCircleRight, FaSync, FaRegCopy } from "react-icons/fa";
 import thumbsUp from '../assets/thumbs-up.png';
 import thumbsDown from '../assets/thumbs-down.png';
 import spin from '../assets/spin.png';
+import { sessionApi } from '../../api/sessionApi.js';
+import { useSession } from '../context/SessionContext';
 
 const Chatbot = () => {
-  const [messages, setMessages] = useState([]);
+  const { sessionId, setSessionId, scratchpadText, messages, setMessages } = useSession();
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [feedback, setFeedback] = useState({}); // { messageIndex: 'positive' | 'negative' }
   const [nudgeMessageIndex, setNudgeMessageIndex] = useState(null);
   const [nudgeId, setNudgeId] = useState(null);
+  const [sessionStats, setSessionStats] = useState(null);
   const toast = useToast();
+  const lastSnapshotRef = React.useRef("");
+
+  // Cleanup session when component unmounts
+  useEffect(() => {
+    return () => {
+      if (sessionId) {
+        sessionApi.endSession(sessionId).catch(error => {
+          console.error('Failed to end session:', error);
+        });
+      }
+    };
+  }, [sessionId]);
+
+  // Update session stats when messages change
+  useEffect(() => {
+    if (sessionId && messages.length > 0) {
+      sessionApi.getSessionStats(sessionId)
+        .then(stats => setSessionStats(stats))
+        .catch(error => console.error('Failed to get session stats:', error));
+    }
+  }, [sessionId, messages.length]);
 
   const sendMessage = async () => {
-    if (!input.trim()) return;
+    if (!input.trim() && !scratchpadText.trim()) return;
+    
+    // Create session if this is the first message
+    let currentSessionId = sessionId;
+    if (!currentSessionId) {
+      try {
+        currentSessionId = await sessionApi.createSession({
+          metadata: {
+            userAgent: navigator.userAgent,
+            deviceType: /Mobile|Android|iPhone|iPad/.test(navigator.userAgent) ? 'mobile' : 'desktop'
+          }
+        });
+        setSessionId(currentSessionId);
+        console.log('Session created:', currentSessionId);
+      } catch (error) {
+        console.error('Failed to create session:', error);
+        // Continue without session tracking if session creation fails
+      }
+    }
+    
     setIsLoading(true);
     const userMessage = { role: "user", content: input };
     const updatedMessages = [...messages, userMessage];
@@ -39,7 +82,10 @@ const Chatbot = () => {
       const response = await fetch("http://localhost:5000/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: updatedMessages }),
+        body: JSON.stringify({ 
+          messages: updatedMessages,
+          sessionId: currentSessionId 
+        }),
       });
       if (!response.ok) throw new Error("Failed to fetch response from the chatbot");
       const data = await response.json();
@@ -58,11 +104,43 @@ const Chatbot = () => {
       setIsLoading(false);
       setInput("");
     }
+
+    // Save scratchpad snapshot if changed
+    if (scratchpadText && scratchpadText !== lastSnapshotRef.current && currentSessionId) {
+      try {
+        await sessionApi.addScratchpadSnapshot(currentSessionId, scratchpadText);
+        lastSnapshotRef.current = scratchpadText;
+      } catch (err) {
+        console.error('Failed to save scratchpad snapshot:', err);
+      }
+    }
   };
 
   const fetchRandomNudge = async () => {
+    // Create session if this is the first interaction
+    let currentSessionId = sessionId;
+    if (!currentSessionId) {
+      try {
+        currentSessionId = await sessionApi.createSession({
+          metadata: {
+            userAgent: navigator.userAgent,
+            deviceType: /Mobile|Android|iPhone|iPad/.test(navigator.userAgent) ? 'mobile' : 'desktop'
+          }
+        });
+        setSessionId(currentSessionId);
+        console.log('Session created for nudge:', currentSessionId);
+      } catch (error) {
+        console.error('Failed to create session for nudge:', error);
+        // Continue without session tracking if session creation fails
+      }
+    }
+    
     try {
-      const response = await fetch("http://localhost:5000/api/random");
+      const url = currentSessionId 
+        ? `http://localhost:5000/api/random?sessionId=${currentSessionId}`
+        : "http://localhost:5000/api/random";
+      
+      const response = await fetch(url);
       if (!response.ok) throw new Error("Failed to fetch nudge");
       const data = await response.json();
       const nudgeMsg = { role: "assistant", content: data.text, nudge: true };
@@ -72,26 +150,66 @@ const Chatbot = () => {
     }
   };
 
-  const handleFeedback = async (type) => {
-    if (nudgeId == null || nudgeMessageIndex == null) return;
-    try {
-      const response = await fetch(`http://localhost:5000/api/${nudgeId}/feedback`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ feedbackType: type }),
+  const handleFeedback = async (messageIndex, type) => {
+    if (!sessionId) {
+      toast({
+        title: "No active session",
+        description: "Please send a message first to start tracking feedback",
+        status: "warning",
+        duration: 3000,
+        isClosable: true,
+        position: "top",
       });
-      if (!response.ok) throw new Error("Failed to submit feedback");
-      setFeedback((prev) => ({ ...prev, [nudgeMessageIndex]: type }));
+      return;
+    }
+    
+    try {
+      // Update feedback in session
+      await sessionApi.updateFeedback(sessionId, messageIndex, type);
+      
+      // Update local feedback state
+      setFeedback((prev) => ({ ...prev, [messageIndex]: type }));
+      
+      // Show success toast
+      toast({
+        title: "Feedback submitted!",
+        status: "success",
+        duration: 2000,
+        isClosable: true,
+        position: "top",
+      });
     } catch (error) {
       console.error("Error submitting feedback:", error);
+      toast({
+        title: "Failed to submit feedback",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+        position: "top",
+      });
     }
   };
 
   const handleSpin = async (assistantIndex, isNudge) => {
+    // Track spin interaction if session exists
+    if (sessionId) {
+      try {
+        const action = isNudge ? 'new_nudge' : 'regenerate';
+        await sessionApi.addSpinInteraction(sessionId, assistantIndex, action);
+      } catch (error) {
+        console.error('Error tracking spin interaction:', error);
+        // Continue with the action even if tracking fails
+      }
+    }
+
     if (isNudge) {
       // Fetch a new random nudge
       try {
-        const response = await fetch("http://localhost:5000/api/random");
+        const url = sessionId 
+          ? `http://localhost:5000/api/random?sessionId=${sessionId}`
+          : "http://localhost:5000/api/random";
+        
+        const response = await fetch(url);
         if (!response.ok) throw new Error("Failed to fetch nudge");
         const data = await response.json();
         const nudgeMsg = { role: "assistant", content: data.text, nudge: true };
@@ -117,7 +235,10 @@ const Chatbot = () => {
       const response = await fetch("http://localhost:5000/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: updatedMessages }),
+        body: JSON.stringify({ 
+          messages: updatedMessages,
+          sessionId: sessionId 
+        }),
       });
       if (!response.ok) throw new Error("Failed to fetch response from the chatbot");
       const data = await response.json();
@@ -195,7 +316,13 @@ const Chatbot = () => {
             <Box key={index}>
               <Box
                 alignSelf={message.role === "user" ? "flex-end" : "flex-start"}
-                bg={message.role === "user" ? "#7B1EA2E5" : "#E9E9EB"}
+                bg={
+                  message.role === "user"
+                    ? "#7B1EA2E5"
+                    : message.nudge
+                      ? "rgba(255, 244, 128, 0.4)"
+                      : "gray.100"
+                }
                 color={message.role === "user" ? "white" : "gray.800"}
                 p={3}
                 borderRadius="lg"
@@ -228,13 +355,45 @@ const Chatbot = () => {
               {message.role === "assistant" && (
                 <HStack spacing={3} mt={2} ml={2} mr={"auto"}>
                   <Tooltip label="Like" hasArrow>
-                    <Box as="span" cursor="pointer" onClick={() => {/* like handler */}}>
-                      <img src={thumbsUp} alt="Like" width={18} height={18} style={{ display: 'inline-block' }} />
+                    <Box 
+                      as="span" 
+                      cursor="pointer" 
+                      onClick={() => handleFeedback(index, 'positive')}
+                      opacity={feedback[index] === 'positive' ? 1 : 0.6}
+                      _hover={{ opacity: 1 }}
+                      transition="opacity 0.2s"
+                    >
+                      <img 
+                        src={thumbsUp} 
+                        alt="Like" 
+                        width={18} 
+                        height={18} 
+                        style={{ 
+                          display: 'inline-block',
+                          filter: feedback[index] === 'positive' ? 'brightness(1.2)' : 'none'
+                        }} 
+                      />
                     </Box>
                   </Tooltip>
                   <Tooltip label="Dislike" hasArrow>
-                    <Box as="span" cursor="pointer" onClick={() => {/* dislike handler */}}>
-                      <img src={thumbsDown} alt="Dislike" width={18} height={18} style={{ display: 'inline-block' }} />
+                    <Box 
+                      as="span" 
+                      cursor="pointer" 
+                      onClick={() => handleFeedback(index, 'negative')}
+                      opacity={feedback[index] === 'negative' ? 1 : 0.6}
+                      _hover={{ opacity: 1 }}
+                      transition="opacity 0.2s"
+                    >
+                      <img 
+                        src={thumbsDown} 
+                        alt="Dislike" 
+                        width={18} 
+                        height={18} 
+                        style={{ 
+                          display: 'inline-block',
+                          filter: feedback[index] === 'negative' ? 'brightness(1.2)' : 'none'
+                        }} 
+                      />
                     </Box>
                   </Tooltip>
                   <Tooltip label="Spin" hasArrow>

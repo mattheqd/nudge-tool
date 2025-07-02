@@ -1,6 +1,9 @@
 import { Nudge } from '../models/NudgeModel.js';
+import sessionService from '../services/sessionService.js';
 
 export const getRandomNudge = async (req, res) => {
+    const { sessionId } = req.query;
+    
     try {
         // Get a random nudge from the database
         const nudge = await Nudge.aggregate([
@@ -15,6 +18,24 @@ export const getRandomNudge = async (req, res) => {
         await Nudge.findByIdAndUpdate(nudge[0]._id, {
             $inc: { usageCount: 1 }
         });
+
+        // If sessionId is provided, track the nudge in the session
+        if (sessionId) {
+            try {
+                await sessionService.addMessage(sessionId, {
+                    role: 'assistant',
+                    content: nudge[0].text,
+                    timestamp: new Date(),
+                    isNudge: true,
+                    nudgeId: nudge[0]._id,
+                    responseTime: null,
+                    tokensUsed: 0
+                });
+            } catch (sessionError) {
+                console.error('Error tracking nudge in session:', sessionError);
+                // Don't fail the main request if session tracking fails
+            }
+        }
 
         res.json(nudge[0]);
     } catch (error) {
