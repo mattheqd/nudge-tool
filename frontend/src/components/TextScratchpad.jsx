@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Box, Button, Textarea, VStack, HStack, Tab, TabList, TabPanel, TabPanels, Tabs, IconButton, Badge, Flex } from "@chakra-ui/react";
+import React, { useState, useEffect, useRef } from "react";
+import { Box, Button, Textarea, VStack, HStack, Tab, TabList, TabPanel, TabPanels, Tabs, IconButton, Badge, Flex, Slider, SliderTrack, SliderFilledTrack, SliderThumb, Text } from "@chakra-ui/react";
 import ExpandableCards from "./ExpandableCards";
 import CardHistory from "./CardHistory";
 import { FiChevronsRight, FiChevronsLeft } from 'react-icons/fi';
@@ -7,36 +7,34 @@ import { useSession } from '../context/SessionContext';
 import { DownloadIcon } from '@chakra-ui/icons';
 
 const ToggleCardsButton = ({ show, count, onClick }) => (
-  <Box position="absolute" top={2} right={6} zIndex={10}>
-    <Button
-      onClick={onClick}
-      borderRadius="xl"
-      boxShadow="md"
-      bg="white"
-      p={0}
-      minW={0}
-      width="44px"
-      height="44px"
-      position="relative"
-      _hover={{ boxShadow: 'lg', bg: 'gray.50' }}
+  <Button
+    onClick={onClick}
+    borderRadius="xl"
+    boxShadow="md"
+    bg="white"
+    p={0}
+    minW={0}
+    width="44px"
+    height="44px"
+    position="relative"
+    _hover={{ boxShadow: 'lg', bg: 'gray.50' }}
+  >
+    {show ? <FiChevronsRight size={28} /> : <FiChevronsLeft size={28} />}
+    <Badge
+      position="absolute"
+      top={1}
+      right={1}
+      bg="#FFD8E4"
+      color="black"
+      borderRadius="full"
+      px={2}
+      fontSize="sm"
+      fontWeight="bold"
+      boxShadow="sm"
     >
-      {show ? <FiChevronsRight size={28} /> : <FiChevronsLeft size={28} />}
-      <Badge
-        position="absolute"
-        top={1}
-        right={1}
-        bg="#FFD8E4"
-        color="black"
-        borderRadius="full"
-        px={2}
-        fontSize="sm"
-        fontWeight="bold"
-        boxShadow="sm"
-      >
-        {count}
-      </Badge>
-    </Button>
-  </Box>
+      {count}
+    </Badge>
+  </Button>
 );
 
 const TextScratchpad = ({ sessionId }) => {
@@ -44,6 +42,10 @@ const TextScratchpad = ({ sessionId }) => {
   const [activeTab, setActiveTab] = useState(0);
   const [showCards, setShowCards] = useState(true);
   const [cardCount, setCardCount] = useState(0);
+  const [spawnFrequency, setSpawnFrequency] = useState(5); // Default 5 seconds for testing
+  const [isSpawning, setIsSpawning] = useState(false);
+  const [spawnTrigger, setSpawnTrigger] = useState(0);
+  const spawnIntervalRef = useRef(null);
 
   const handleTabChange = (index) => {
     setActiveTab(index);
@@ -52,6 +54,65 @@ const TextScratchpad = ({ sessionId }) => {
   // Callback to update card count from ExpandableCards
   const handleCardCountChange = (count) => {
     setCardCount(count);
+  };
+
+  // Start/stop card spawning based on session
+  useEffect(() => {
+    if (contextSessionId && !isSpawning) {
+      setIsSpawning(true);
+      startSpawning();
+    } else if (!contextSessionId && isSpawning) {
+      setIsSpawning(false);
+      stopSpawning();
+    }
+  }, [contextSessionId]);
+
+  // Update spawn interval when frequency changes
+  useEffect(() => {
+    if (isSpawning) {
+      stopSpawning();
+      startSpawning();
+    }
+  }, [spawnFrequency]);
+
+  const startSpawning = () => {
+    if (spawnIntervalRef.current) {
+      clearInterval(spawnIntervalRef.current);
+    }
+    spawnIntervalRef.current = setInterval(() => {
+      // Trigger card spawn
+      if (showCards) {
+        setSpawnTrigger(prev => prev + 1);
+      }
+    }, spawnFrequency * 1000);
+  };
+
+  const stopSpawning = () => {
+    if (spawnIntervalRef.current) {
+      clearInterval(spawnIntervalRef.current);
+      spawnIntervalRef.current = null;
+    }
+  };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      stopSpawning();
+    };
+  }, []);
+
+  const formatFrequency = (seconds) => {
+    if (seconds < 60) {
+      return `${seconds}s`;
+    } else {
+      const minutes = Math.floor(seconds / 60);
+      const remainingSeconds = seconds % 60;
+      if (remainingSeconds === 0) {
+        return `${minutes}m`;
+      } else {
+        return `${minutes}m ${remainingSeconds}s`;
+      }
+    }
   };
 
   // Handle first input: start session and save snapshot if needed
@@ -108,25 +169,27 @@ const TextScratchpad = ({ sessionId }) => {
   return (
     <Box display="flex" flexDirection="column" height="100%" width="100%" bg="#F6F8FA" position="relative">
       <Box display="flex" position="relative" zIndex={2}>
-        <Flex align="center" justify="space-between" bg="white" px={8} py={2} position="relative" zIndex={2} width="100%">
+        {/* <Flex align="center" justify="space-between" bg="white" px={8} py={2} position="relative" zIndex={2} width="100%">
           <Box fontWeight="bold" fontSize="lg" color="gray.800">
             Scratchpad
           </Box>
           <Button leftIcon={<DownloadIcon />} colorScheme="gray" variant="outline" size="sm" onClick={handleSave}>
             Save
           </Button>
-        </Flex>
-        {/* Accent bar at top */}
-        <Box
-          position="relative"
-          top={0}
-          left={0}
-          right={0}
-          height="4px"
-          bg="#FFD8E4"
-          borderTopLeftRadius="lg"
-          borderTopRightRadius="lg"
-        />
+          
+        </Flex> */}
+         <Box
+              position="relative"
+              top={0}
+              left={0}
+              right={0}
+              height="4px"
+              bg="#FFD8E4"
+              borderTopLeftRadius="lg"
+              borderTopRightRadius="lg"
+            />
+
+     
       </Box>
       <Box
         flex="1"
@@ -147,14 +210,20 @@ const TextScratchpad = ({ sessionId }) => {
           onChange={handleTabChange}
         >
           <TabList>
-            <Tab>Scratchpad</Tab>
-            <Tab>History</Tab>
+            <Tab  fontWeight="bold"
+            fontSize="lg"
+            color="gray.800">Scratchpad</Tab>
+            
+            <Tab  fontWeight="bold"
+            fontSize="lg"
+            color="gray.800">History</Tab>
+           
           </TabList>
+          
+          
 
           <TabPanels flex="1" minHeight={0} display="flex" flexDirection="column">
             <TabPanel flex="1" minHeight={0} display="flex" flexDirection="column" p={0} position="relative">
-              {/* Toggle Button */}
-              <ToggleCardsButton show={showCards} count={cardCount} onClick={() => setShowCards((v) => !v)} />
               <VStack spacing={4} align="stretch" flex="1" minHeight={0} px={5} py={5}>
                 <Textarea
                   placeholder="Start typing here..."
@@ -171,9 +240,50 @@ const TextScratchpad = ({ sessionId }) => {
               </VStack>
               {showCards && (
                 <Box mt={2}>
-                  <ExpandableCards sessionId={sessionId} onCardCountChange={handleCardCountChange} />
+                  <ExpandableCards 
+                    sessionId={sessionId} 
+                    onCardCountChange={handleCardCountChange} 
+                    spawnTrigger={spawnTrigger}
+                  />
                 </Box>
               )}
+              {/* Toggle Button Row */}
+              <Box 
+                bg="white" 
+                px={5} 
+                py={3} 
+                borderTop="1px solid" 
+                borderColor="gray.200"
+                display="flex"
+                justifyContent="space-between"
+                alignItems="center"
+              >
+                <HStack spacing={4} align="center">
+                  <ToggleCardsButton show={showCards} count={cardCount} onClick={() => setShowCards((v) => !v)} />
+                  {contextSessionId && (
+                    <HStack spacing={3} align="center">
+                      <Text fontSize="sm" color="gray.600" minW="60px">
+                        {formatFrequency(spawnFrequency)}
+                      </Text>
+                      <Box flex="1" minW="200px" maxW="300px">
+                        <Slider
+                          value={spawnFrequency}
+                          onChange={setSpawnFrequency}
+                          min={15}
+                          max={600}
+                          step={15}
+                          colorScheme="pink"
+                        >
+                          <SliderTrack>
+                            <SliderFilledTrack />
+                          </SliderTrack>
+                          <SliderThumb />
+                        </Slider>
+                      </Box>
+                    </HStack>
+                  )}
+                </HStack>
+              </Box>
             </TabPanel>
 
             <TabPanel flex="1" p={0}>

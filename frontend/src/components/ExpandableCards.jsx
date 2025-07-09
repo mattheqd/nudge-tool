@@ -10,21 +10,23 @@ import {
   Tooltip,
   useToast,
 } from '@chakra-ui/react';
-import acceptIcon from '../assets/accept.png';
-import dismissIcon from '../assets/dismiss.png';
+import { FaThumbsUp, FaThumbsDown } from 'react-icons/fa';
 import { sessionApi } from '../../api/sessionApi.js';
 
-const ExpandableCards = ({ sessionId, onCardCountChange }) => {
+const ExpandableCards = ({ sessionId, onCardCountChange, spawnTrigger }) => {
   const [cards, setCards] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [cardFeedback, setCardFeedback] = useState({}); // { cardId: 'like' | 'dislike' }
   const toast = useToast();
 
   console.log('ExpandableCards sessionId:', sessionId);
 
+  // Listen for spawn triggers
   useEffect(() => {
-    if (cards.length === 0) fetchNudges();
-    // eslint-disable-next-line
-  }, []);
+    if (spawnTrigger) {
+      fetchNudges();
+    }
+  }, [spawnTrigger]);
 
   // Notify parent of card count changes
   useEffect(() => {
@@ -57,33 +59,18 @@ const ExpandableCards = ({ sessionId, onCardCountChange }) => {
     }
   };
 
-  const handleAccept = async (card) => {
-    console.log('Accepting card:', card);
-    setCards(prev => prev.filter(c => c.id !== card.id));
-    
-    // Track card interaction if session exists
-    if (sessionId) {
-      try {
-        const cardData = {
-          cardId: card.id.toString(),
-          cardTitle: card.title,
-          cardContent: card.fullContent,
-          action: 'accept',
-          nudgeId: card.nudgeId
-        };
-        console.log('Tracking card interaction:', cardData);
-        await sessionApi.addCardInteraction(sessionId, cardData);
-        console.log('Card interaction tracked successfully');
-      } catch (error) {
-        console.error('Error tracking card interaction:', error);
-      }
-    } else {
-      console.log('No sessionId available for tracking');
-    }
+  const handleLike = async (card) => {
+    console.log('Liking card:', card);
+    setCardFeedback(prev => ({ ...prev, [card.id]: 'like' }));
   };
 
-  const handleDismiss = async (card) => {
-    console.log('Dismissing card:', card);
+  const handleDislike = async (card) => {
+    console.log('Disliking card:', card);
+    setCardFeedback(prev => ({ ...prev, [card.id]: 'dislike' }));
+  };
+
+  const handleMoveToHistory = async (card) => {
+    console.log('Moving card to history:', card);
     setCards(prev => prev.filter(c => c.id !== card.id));
     
     // Track card interaction if session exists
@@ -93,7 +80,7 @@ const ExpandableCards = ({ sessionId, onCardCountChange }) => {
           cardId: card.id.toString(),
           cardTitle: card.title,
           cardContent: card.fullContent,
-          action: 'dismiss',
+          action: cardFeedback[card.id] || 'neutral',
           nudgeId: card.nudgeId
         };
         console.log('Tracking card interaction:', cardData);
@@ -138,31 +125,59 @@ const ExpandableCards = ({ sessionId, onCardCountChange }) => {
             display="flex"
             flexDirection="column"
             justifyContent="space-between"
+            position="relative"
           >
+            {/* X button to move to history */}
+            <Tooltip label="Move to history" hasArrow>
+              <IconButton
+                icon={<Box as="span" fontSize="lg">×</Box>}
+                aria-label="Move to history"
+                variant="ghost"
+                onClick={() => handleMoveToHistory(card)}
+                _hover={{ bg: 'gray.100' }}
+                borderRadius="full"
+                position="absolute"
+                top={2}
+                right={2}
+                size="sm"
+                color="gray.500"
+              />
+            </Tooltip>
+            
             <VStack align="stretch" spacing={2} flex="1">
               <Text fontSize="sm" color="gray.500" fontWeight="bold"># Nudge {idx + 1}</Text>
               <Text fontWeight="bold" fontSize="md" mb={1}>{card.title}</Text>
               <Text fontSize="sm" color="gray.700">{card.shortDescription}</Text>
             </VStack>
             <HStack spacing={4} mt={4} justify="center">
-              <Tooltip label="Accept" hasArrow>
+              <Tooltip label="Like" hasArrow>
                 <IconButton
-                  icon={<img src={acceptIcon} alt="Accept" width={28} height={28} />}
-                  aria-label="Accept"
+                  icon={<FaThumbsUp size={24} />}
+                  aria-label="Like"
                   variant="ghost"
-                  onClick={() => handleAccept(card)}
-                  _hover={{ bg: 'gray.100' }}
+                  onClick={() => handleLike(card)}
+                  color={cardFeedback[card.id] === 'like' ? 'green.500' : 'gray.400'}
+                  _hover={{ 
+                    bg: 'gray.100',
+                    color: cardFeedback[card.id] === 'like' ? 'green.600' : 'gray.500'
+                  }}
                   borderRadius="full"
+                  size="lg"
                 />
               </Tooltip>
-              <Tooltip label="Dismiss" hasArrow>
+              <Tooltip label="Dislike" hasArrow>
                 <IconButton
-                  icon={<img src={dismissIcon} alt="Dismiss" width={28} height={28} />}
-                  aria-label="Dismiss"
+                  icon={<FaThumbsDown size={24} />}
+                  aria-label="Dislike"
                   variant="ghost"
-                  onClick={() => handleDismiss(card)}
-                  _hover={{ bg: 'gray.100' }}
+                  onClick={() => handleDislike(card)}
+                  color={cardFeedback[card.id] === 'dislike' ? 'red.500' : 'gray.400'}
+                  _hover={{ 
+                    bg: 'gray.100',
+                    color: cardFeedback[card.id] === 'dislike' ? 'red.600' : 'gray.500'
+                  }}
                   borderRadius="full"
+                  size="lg"
                 />
               </Tooltip>
             </HStack>

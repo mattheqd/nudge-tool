@@ -14,10 +14,10 @@ import {
   InputGroup,
   InputLeftElement,
   InputRightElement,
+  Flex,
 } from '@chakra-ui/react';
-import { FaArrowAltCircleRight, FaSync, FaRegCopy } from "react-icons/fa";
-import thumbsUp from '../assets/thumbs-up.png';
-import thumbsDown from '../assets/thumbs-down.png';
+import { FaArrowAltCircleRight, FaSync, FaRegCopy, FaThumbsUp, FaThumbsDown, FaRedo } from "react-icons/fa";
+import { DownloadIcon } from '@chakra-ui/icons';
 import spin from '../assets/spin.png';
 import { sessionApi } from '../../api/sessionApi.js';
 import { useSession } from '../context/SessionContext';
@@ -269,33 +269,49 @@ const Chatbot = () => {
     });
   };
 
+  // Save button handler
+  const handleSave = () => {
+    let content = '';
+    content += '--- Scratchpad ---\n';
+    content += scratchpadText + '\n\n';
+    content += '--- Chat History ---\n';
+    messages.forEach((msg, idx) => {
+      if (msg.role === 'user') {
+        content += `User: ${msg.content}\n`;
+      } else if (msg.role === 'assistant' && msg.nudge) {
+        content += `Nudge: ${msg.content}\n`;
+      } else if (msg.role === 'assistant') {
+        content += `Assistant: ${msg.content}\n`;
+      }
+    });
+    // Download as .txt
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'nudge-session.txt';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 0);
+  };
+
   return (
     <Box display="flex" flexDirection="column" height="100%" width="100%" bg="#F6F8FA" position="relative">
-      <Box display="flex"  position="relative" zIndex={2}>
-        <Box position="relative" display="inline-block">
-          <Box
-            bg="white"
-            px={8}
-            py={2}
-
-            fontWeight="bold"
-            fontSize="lg"
-            color="gray.800"
-            position="relative"
-            zIndex={2}
-          >
-            Chat
-          </Box>
-          {/* Accent bar at bottom */}
-          <Box
-            position="relative"
-            left={0}
-            right={0}
-            bottom={0}
-            height="4px"
-            bg="#FFD8E4"
-     
-          />
+      <Box display="flex" position="relative" zIndex={2} flexShrink={0}>
+        <Box position="relative" display="inline-block" width="100%">
+          <Flex align="center" justify="space-between" bg="white" px={8} py={2} position="relative" zIndex={2} width="100%">
+            <Box fontWeight="bold" fontSize="lg" color="gray.800">
+              Chat
+            </Box>
+             {/* Accent bar at bottom */}
+            <Button leftIcon={<DownloadIcon />} colorScheme="gray" variant="outline" size="sm" onClick={handleSave}>
+              Save
+            </Button>
+          </Flex>
+         
         </Box>
       </Box>
       <Box
@@ -355,51 +371,58 @@ const Chatbot = () => {
               {message.role === "assistant" && (
                 <HStack spacing={3} mt={2} ml={2} mr={"auto"}>
                   <Tooltip label="Like" hasArrow>
-                    <Box 
-                      as="span" 
-                      cursor="pointer" 
+                    <IconButton
+                      icon={<FaThumbsUp size={18} />}
+                      aria-label="Like"
+                      variant="ghost"
                       onClick={() => handleFeedback(index, 'positive')}
-                      opacity={feedback[index] === 'positive' ? 1 : 0.6}
-                      _hover={{ opacity: 1 }}
-                      transition="opacity 0.2s"
-                    >
-                      <img 
-                        src={thumbsUp} 
-                        alt="Like" 
-                        width={18} 
-                        height={18} 
-                        style={{ 
-                          display: 'inline-block',
-                          filter: feedback[index] === 'positive' ? 'brightness(1.2)' : 'none'
-                        }} 
-                      />
-                    </Box>
+                      color={feedback[index] === 'positive' ? 'green.500' : 'gray.400'}
+                      _hover={{ 
+                        bg: 'gray.100',
+                        color: feedback[index] === 'positive' ? 'green.600' : 'gray.500'
+                      }}
+                      borderRadius="full"
+                      size="sm"
+                      minW="auto"
+                      h="auto"
+                      p={1}
+                    />
                   </Tooltip>
                   <Tooltip label="Dislike" hasArrow>
-                    <Box 
-                      as="span" 
-                      cursor="pointer" 
+                    <IconButton
+                      icon={<FaThumbsDown size={18} />}
+                      aria-label="Dislike"
+                      variant="ghost"
                       onClick={() => handleFeedback(index, 'negative')}
-                      opacity={feedback[index] === 'negative' ? 1 : 0.6}
-                      _hover={{ opacity: 1 }}
-                      transition="opacity 0.2s"
-                    >
-                      <img 
-                        src={thumbsDown} 
-                        alt="Dislike" 
-                        width={18} 
-                        height={18} 
-                        style={{ 
-                          display: 'inline-block',
-                          filter: feedback[index] === 'negative' ? 'brightness(1.2)' : 'none'
-                        }} 
-                      />
-                    </Box>
+                      color={feedback[index] === 'negative' ? 'red.500' : 'gray.400'}
+                      _hover={{ 
+                        bg: 'gray.100',
+                        color: feedback[index] === 'negative' ? 'red.600' : 'gray.500'
+                      }}
+                      borderRadius="full"
+                      size="sm"
+                      minW="auto"
+                      h="auto"
+                      p={1}
+                    />
                   </Tooltip>
-                  <Tooltip label="Spin" hasArrow>
-                    <Box as="span" cursor="pointer" onClick={() => handleSpin(index, message.nudge)}>
-                      <img src={spin} alt="Spin" width={18} height={18} style={{ display: 'inline-block' }} />
-                    </Box>
+                  <Tooltip label="Regenerate" hasArrow>
+                    <IconButton
+                      icon={<FaRedo size={18} />}
+                      aria-label="Regenerate"
+                      variant="ghost"
+                      onClick={() => handleSpin(index, message.nudge)}
+                      color="gray.400"
+                      _hover={{ 
+                        bg: 'gray.100',
+                        color: 'gray.500'
+                      }}
+                      borderRadius="full"
+                      size="sm"
+                      minW="auto"
+                      h="auto"
+                      p={1}
+                    />
                   </Tooltip>
                 </HStack>
               )}

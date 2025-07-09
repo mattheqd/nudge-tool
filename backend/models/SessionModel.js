@@ -24,7 +24,7 @@ const cardInteractionSchema = new mongoose.Schema({
   cardId: { type: String, required: true },
   cardTitle: { type: String, required: true },
   cardContent: { type: String, required: true },
-  action: { type: String, enum: ['accept', 'dismiss'], required: true },
+  action: { type: String, enum: ['like', 'dislike', 'neutral'], required: true },
   timestamp: { type: Date, default: Date.now },
   nudgeId: { type: mongoose.Schema.Types.ObjectId, ref: 'Nudge' }
 });
@@ -61,8 +61,9 @@ const sessionSchema = new mongoose.Schema({
     total: { type: Number, default: 0 }
   },
   cardStats: {
-    accepted: { type: Number, default: 0 },
-    dismissed: { type: Number, default: 0 },
+    liked: { type: Number, default: 0 },
+    disliked: { type: Number, default: 0 },
+    neutral: { type: Number, default: 0 },
     total: { type: Number, default: 0 }
   },
   isActive: { type: Boolean, default: true },
@@ -162,8 +163,9 @@ sessionSchema.methods.addCardInteraction = function(cardData) {
   
   // Update card stats
   this.cardStats.total = this.cardInteractions.length;
-  this.cardStats.accepted = this.cardInteractions.filter(c => c.action === 'accept').length;
-  this.cardStats.dismissed = this.cardInteractions.filter(c => c.action === 'dismiss').length;
+  this.cardStats.liked = this.cardInteractions.filter(c => c.action === 'like').length;
+  this.cardStats.disliked = this.cardInteractions.filter(c => c.action === 'dislike').length;
+  this.cardStats.neutral = this.cardInteractions.filter(c => c.action === 'neutral').length;
   
   return this.save();
 };

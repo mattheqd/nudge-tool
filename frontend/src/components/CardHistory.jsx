@@ -17,7 +17,7 @@ import { sessionApi } from '../../api/sessionApi.js';
 const CardHistory = ({ sessionId, shouldRefresh }) => {
   const [cardHistory, setCardHistory] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [filter, setFilter] = useState('all'); // 'all', 'accepted', 'dismissed'
+  const [filter, setFilter] = useState('all'); // 'all', 'liked', 'disliked', 'neutral'
   const toast = useToast();
 
   console.log('CardHistory sessionId:', sessionId, 'shouldRefresh:', shouldRefresh);
@@ -115,25 +115,36 @@ const CardHistory = ({ sessionId, shouldRefresh }) => {
           </Button>
           <Button
             size="sm"
-            variant={filter === 'accept' ? 'solid' : 'outline'}
+            variant={filter === 'like' ? 'solid' : 'outline'}
             colorScheme="green"
             onClick={() => {
-              console.log('Setting filter to accept');
-              setFilter('accept');
+              console.log('Setting filter to like');
+              setFilter('like');
             }}
           >
-            Accepted ({cardHistory.filter(c => c.action === 'accept').length})
+            Liked ({cardHistory.filter(c => c.action === 'like').length})
           </Button>
           <Button
             size="sm"
-            variant={filter === 'dismiss' ? 'solid' : 'outline'}
+            variant={filter === 'dislike' ? 'solid' : 'outline'}
             colorScheme="red"
             onClick={() => {
-              console.log('Setting filter to dismiss');
-              setFilter('dismiss');
+              console.log('Setting filter to dislike');
+              setFilter('dislike');
             }}
           >
-            Dismissed ({cardHistory.filter(c => c.action === 'dismiss').length})
+            Disliked ({cardHistory.filter(c => c.action === 'dislike').length})
+          </Button>
+          <Button
+            size="sm"
+            variant={filter === 'neutral' ? 'solid' : 'outline'}
+            colorScheme="gray"
+            onClick={() => {
+              console.log('Setting filter to neutral');
+              setFilter('neutral');
+            }}
+          >
+            Neutral ({cardHistory.filter(c => c.action === 'neutral').length})
           </Button>
         </HStack>
       </Flex>
@@ -159,11 +170,17 @@ const CardHistory = ({ sessionId, shouldRefresh }) => {
                   {formatTimestamp(card.timestamp)}
                 </Text>
                 <Badge
-                  colorScheme={card.action === 'accept' ? 'green' : 'red'}
+                  colorScheme={
+                    card.action === 'like' ? 'green' : 
+                    card.action === 'dislike' ? 'red' : 
+                    'gray'
+                  }
                   variant="subtle"
                   fontSize="xs"
                 >
-                  {card.action === 'accept' ? 'ACCEPTED' : 'DISMISSED'}
+                  {card.action === 'like' ? 'LIKED' : 
+                   card.action === 'dislike' ? 'DISLIKED' : 
+                   'NEUTRAL'}
                 </Badge>
               </Flex>
               

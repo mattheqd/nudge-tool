@@ -159,10 +159,10 @@ router.post('/:sessionId/card', async (req, res) => {
     const { sessionId } = req.params;
     const { cardId, cardTitle, cardContent, action, nudgeId } = req.body;
     
-    if (!['accept', 'dismiss'].includes(action)) {
+    if (!['like', 'dislike', 'neutral'].includes(action)) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid action. Must be "accept" or "dismiss"'
+        message: 'Invalid action. Must be "like", "dislike", or "neutral"'
       });
     }
     
