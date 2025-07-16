@@ -1,6 +1,6 @@
 import { Box, Flex } from "@chakra-ui/react";
-import TextScratchpad from "../Components/TextScratchpad";
-import Chatbot from "../Components/Chatbot";
+import TextScratchpad from "../components/TextScratchpad";
+import Chatbot from "../components/Chatbot";
 import { useSession } from "../context/SessionContext";
 
 const HomePage = () => {

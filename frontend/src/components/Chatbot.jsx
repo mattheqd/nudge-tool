@@ -318,7 +318,6 @@ const Chatbot = () => {
       <Box
         flex="1"
         mx="auto"
-  
         width="100%"
         bg="#F6F8FA"
         boxShadow="sm"
@@ -326,9 +325,19 @@ const Chatbot = () => {
         borderColor="gray.200"
         display="flex"
         flexDirection="column"
+        minHeight={0} // Important: allows flex child to shrink
         pt={8}
       >
-        <VStack flex="1" overflowY="auto" spacing={4} px={6} py={4} align="stretch">
+        <VStack 
+          flex="1" 
+          overflowY="auto" 
+          spacing={4} 
+          px={6} 
+          py={4} 
+          align="stretch"
+          minHeight={0} // Important: allows scrolling
+          maxHeight="100%" // Constrain height
+        >
           {messages.map((message, index) => (
             <Box key={index}>
               <Box
@@ -431,7 +440,7 @@ const Chatbot = () => {
           ))}
         </VStack>
         {/* Input area */}
-        <HStack px={6} pb={6} pt={0} spacing={3} bg="#F6F8FA">
+        <HStack px={6} pb={6} pt={0} spacing={3} bg="#F6F8FA" flexShrink={0}>
           <Tooltip label="Spin for nudge" hasArrow>
             <IconButton
               icon={<img src={spin} alt="Spin" width={20} height={20} style={{ display: 'inline-block' }} />}
