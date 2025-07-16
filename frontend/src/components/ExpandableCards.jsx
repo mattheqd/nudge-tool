@@ -12,6 +12,7 @@ import {
 } from '@chakra-ui/react';
 import { FaThumbsUp, FaThumbsDown } from 'react-icons/fa';
 import { sessionApi } from '../../api/sessionApi.js';
+import { apiUrl } from '../../api/index.jsx';
 
 const ExpandableCards = ({ sessionId, onCardCountChange, spawnTrigger }) => {
   const [cards, setCards] = useState([]);
@@ -39,8 +40,8 @@ const ExpandableCards = ({ sessionId, onCardCountChange, spawnTrigger }) => {
     setIsLoading(true);
     try {
       const url = sessionId 
-        ? `http://localhost:5000/api/random?sessionId=${sessionId}`
-        : "http://localhost:5000/api/random";
+        ? apiUrl(`/api/random?sessionId=${sessionId}`)
+        : apiUrl("/api/random");
       
       const response = await fetch(url);
       if (!response.ok) throw new Error("Failed to fetch nudge");

@@ -21,6 +21,7 @@ import { DownloadIcon } from '@chakra-ui/icons';
 import spin from '../assets/spin.png';
 import { sessionApi } from '../../api/sessionApi.js';
 import { useSession } from '../context/SessionContext';
+import { apiUrl } from '../../api/index.jsx';
 
 const Chatbot = () => {
   const { sessionId, setSessionId, scratchpadText, messages, setMessages } = useSession();
@@ -79,7 +80,7 @@ const Chatbot = () => {
     const updatedMessages = [...messages, userMessage];
     setMessages(updatedMessages);
     try {
-      const response = await fetch("http://localhost:5000/api/chat", {
+      const response = await fetch(apiUrl("/api/chat"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
@@ -137,8 +138,8 @@ const Chatbot = () => {
     
     try {
       const url = currentSessionId 
-        ? `http://localhost:5000/api/random?sessionId=${currentSessionId}`
-        : "http://localhost:5000/api/random";
+        ? apiUrl(`/api/random?sessionId=${currentSessionId}`)
+        : apiUrl("/api/random");
       
       const response = await fetch(url);
       if (!response.ok) throw new Error("Failed to fetch nudge");
@@ -206,8 +207,8 @@ const Chatbot = () => {
       // Fetch a new random nudge
       try {
         const url = sessionId 
-          ? `http://localhost:5000/api/random?sessionId=${sessionId}`
-          : "http://localhost:5000/api/random";
+          ? apiUrl(`/api/random?sessionId=${sessionId}`)
+          : apiUrl("/api/random");
         
         const response = await fetch(url);
         if (!response.ok) throw new Error("Failed to fetch nudge");
@@ -232,7 +233,7 @@ const Chatbot = () => {
     const updatedMessages = [...messages, { role: "user", content: userMessage.content }];
     setMessages(updatedMessages);
     try {
-      const response = await fetch("http://localhost:5000/api/chat", {
+      const response = await fetch(apiUrl("/api/chat"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 

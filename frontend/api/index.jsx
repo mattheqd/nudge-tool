@@ -1,4 +1,9 @@
-const URL = "http://localhost:5050";
+const URL = import.meta.env.VITE_API_URL;
+
+// Helper function to build API URLs
+export function apiUrl(path) {
+  return `${URL}${path}`;
+}
 
 export async function fetchData(route, queryParams, body, type) {
     let fullUrl = `${URL}${route}`;
