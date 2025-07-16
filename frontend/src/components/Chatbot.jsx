@@ -54,67 +54,83 @@ const Chatbot = () => {
     }
   }, [sessionId, messages.length]);
 
-  const sendMessage = async () => {
+  const sendMessage = () => {
     if (!input.trim() && !scratchpadText.trim()) return;
     
-    // Create session if this is the first message
-    let currentSessionId = sessionId;
-    if (!currentSessionId) {
-      try {
-        currentSessionId = await sessionApi.createSession({
-          metadata: {
-            userAgent: navigator.userAgent,
-            deviceType: /Mobile|Android|iPhone|iPad/.test(navigator.userAgent) ? 'mobile' : 'desktop'
-          }
-        });
-        setSessionId(currentSessionId);
-        console.log('Session created:', currentSessionId);
-      } catch (error) {
-        console.error('Failed to create session:', error);
-        // Continue without session tracking if session creation fails
-      }
-    }
+    // Clear input immediately for better UX
+    const currentInput = input;
+    setInput("");
     
+    // Add user message immediately (synchronous UI update)
+    const userMessage = { role: "user", content: currentInput };
+    setMessages(prev => [...prev, userMessage]);
+    
+    // Start loading state immediately
     setIsLoading(true);
-    const userMessage = { role: "user", content: input };
-    const updatedMessages = [...messages, userMessage];
-    setMessages(updatedMessages);
-    try {
-      const response = await fetch(apiUrl("/api/chat"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          messages: updatedMessages,
-          sessionId: currentSessionId 
-        }),
-      });
-      if (!response.ok) throw new Error("Failed to fetch response from the chatbot");
-      const data = await response.json();
-      const assistantMessage = {
-        role: "assistant",
-        content: data.choices[0].message.content,
-      };
-      setMessages((prev) => [...prev, assistantMessage]);
-    } catch (error) {
-      console.error("Error:", error);
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: "Sorry, something went wrong." },
-      ]);
-    } finally {
-      setIsLoading(false);
-      setInput("");
-    }
-
-    // Save scratchpad snapshot if changed
-    if (scratchpadText && scratchpadText !== lastSnapshotRef.current && currentSessionId) {
-      try {
-        await sessionApi.addScratchpadSnapshot(currentSessionId, scratchpadText);
-        lastSnapshotRef.current = scratchpadText;
-      } catch (err) {
-        console.error('Failed to save scratchpad snapshot:', err);
+    
+    // Handle all async operations in the background
+    const handleAsyncOperations = async () => {
+      // Create session in background (non-blocking)
+      let currentSessionId = sessionId;
+      if (!currentSessionId) {
+        try {
+          const newSessionId = await sessionApi.createSession({
+            metadata: {
+              userAgent: navigator.userAgent,
+              deviceType: /Mobile|Android|iPhone|iPad/.test(navigator.userAgent) ? 'mobile' : 'desktop'
+            }
+          });
+          setSessionId(newSessionId);
+          currentSessionId = newSessionId;
+          console.log('Session created:', newSessionId);
+        } catch (error) {
+          console.error('Failed to create session:', error);
+        }
       }
-    }
+      
+      try {
+        // Send chat request
+        const response = await fetch(apiUrl("/api/chat"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ 
+            messages: [...messages, userMessage],
+            sessionId: currentSessionId 
+          }),
+        });
+        
+        if (!response.ok) throw new Error("Failed to fetch response from the chatbot");
+        
+        const data = await response.json();
+        const assistantMessage = {
+          role: "assistant",
+          content: data.choices[0].message.content,
+        };
+        
+        setMessages(prev => [...prev, assistantMessage]);
+      } catch (error) {
+        console.error("Error:", error);
+        setMessages(prev => [
+          ...prev,
+          { role: "assistant", content: "Sorry, something went wrong." },
+        ]);
+      } finally {
+        setIsLoading(false);
+      }
+
+      // Save scratchpad snapshot in background (non-blocking)
+      if (scratchpadText && scratchpadText !== lastSnapshotRef.current && currentSessionId) {
+        try {
+          await sessionApi.addScratchpadSnapshot(currentSessionId, scratchpadText);
+          lastSnapshotRef.current = scratchpadText;
+        } catch (err) {
+          console.error('Failed to save scratchpad snapshot:', err);
+        }
+      }
+    };
+
+    // Start async operations without blocking the UI
+    handleAsyncOperations();
   };
 
   const fetchRandomNudge = async () => {
