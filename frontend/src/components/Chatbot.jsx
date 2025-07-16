@@ -68,11 +68,20 @@ const Chatbot = () => {
     // Start loading state immediately
     setIsLoading(true);
     
+    // Create a temporary session ID immediately for card spawning
+    let currentSessionId = sessionId;
+    if (!currentSessionId) {
+      // Create a temporary session ID to trigger card spawning immediately
+      const tempSessionId = `temp_${Date.now()}`;
+      setSessionId(tempSessionId);
+      currentSessionId = tempSessionId;
+      console.log('Temporary session created for immediate card spawning:', tempSessionId);
+    }
+    
     // Handle all async operations in the background
     const handleAsyncOperations = async () => {
-      // Create session in background (non-blocking)
-      let currentSessionId = sessionId;
-      if (!currentSessionId) {
+      // Create real session first if this is the first message
+      if (currentSessionId.startsWith('temp_')) {
         try {
           const newSessionId = await sessionApi.createSession({
             metadata: {
@@ -82,14 +91,16 @@ const Chatbot = () => {
           });
           setSessionId(newSessionId);
           currentSessionId = newSessionId;
-          console.log('Session created:', newSessionId);
+          console.log('Real session created:', newSessionId);
         } catch (error) {
           console.error('Failed to create session:', error);
+          // If session creation fails, continue without session tracking
+          currentSessionId = null;
         }
       }
       
       try {
-        // Send chat request
+        // Send chat request with real session ID
         const response = await fetch(apiUrl("/api/chat"), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
