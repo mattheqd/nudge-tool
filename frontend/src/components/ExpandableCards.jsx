@@ -14,10 +14,10 @@ import { FaThumbsUp, FaThumbsDown } from 'react-icons/fa';
 import { sessionApi } from '../../api/sessionApi.js';
 import { apiUrl } from '../../api/index.jsx';
 
-const ExpandableCards = ({ sessionId, onCardCountChange, spawnTrigger }) => {
-  const [cards, setCards] = useState([]);
+const ExpandableCards = ({ sessionId, onCardCountChange, onCardsChange, cards, spawnTrigger }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [cardFeedback, setCardFeedback] = useState({}); // { cardId: 'like' | 'dislike' }
+  const [filter, setFilter] = useState('all'); // 'all', 'liked', 'disliked'
   const toast = useToast();
 
   console.log('ExpandableCards sessionId:', sessionId);
@@ -36,6 +36,14 @@ const ExpandableCards = ({ sessionId, onCardCountChange, spawnTrigger }) => {
     }
   }, [cards, onCardCountChange]);
 
+  // Filter cards based on current filter
+  const filteredCards = cards.filter(card => {
+    if (filter === 'all') return true;
+    if (filter === 'liked') return cardFeedback[card.id] === 'like';
+    if (filter === 'disliked') return cardFeedback[card.id] === 'dislike';
+    return true;
+  });
+
   const fetchNudges = async () => {
     setIsLoading(true);
     try {
@@ -46,13 +54,15 @@ const ExpandableCards = ({ sessionId, onCardCountChange, spawnTrigger }) => {
       const response = await fetch(url);
       if (!response.ok) throw new Error("Failed to fetch nudge");
       const data = await response.json();
-      setCards(prev => [...prev, {
+      const newCard = {
         id: Date.now(),
         title: data.category || 'Nudge',
         shortDescription: data.text,
         fullContent: data.text,
         nudgeId: data._id,
-      }]);
+      };
+      const newCards = [...cards, newCard];
+      onCardsChange(newCards);
     } catch (error) {
       console.error("Error fetching nudge:", error);
     } finally {
@@ -72,7 +82,8 @@ const ExpandableCards = ({ sessionId, onCardCountChange, spawnTrigger }) => {
 
   const handleMoveToHistory = async (card) => {
     console.log('Moving card to history:', card);
-    setCards(prev => prev.filter(c => c.id !== card.id));
+    const newCards = cards.filter(c => c.id !== card.id);
+    onCardsChange(newCards);
     
     // Track card interaction if session exists
     if (sessionId) {
@@ -97,7 +108,7 @@ const ExpandableCards = ({ sessionId, onCardCountChange, spawnTrigger }) => {
 
   return (
     <Box width="100%" py={5} px={5}>
-      <Flex justify="flex-start" mb={2}>
+      <Flex justify="space-between" align="center" mb={4}>
         <Button
           colorScheme="pink"
           leftIcon={<Box as="span" fontSize="xl">+</Box>}
@@ -110,9 +121,38 @@ const ExpandableCards = ({ sessionId, onCardCountChange, spawnTrigger }) => {
         >
           Add Card
         </Button>
+        
+        {/* Filter Buttons */}
+        <HStack spacing={2}>
+          <Button
+            size="sm"
+            variant={filter === 'all' ? 'solid' : 'outline'}
+            colorScheme="purple"
+            onClick={() => setFilter('all')}
+          >
+            All ({cards.length})
+          </Button>
+          <Button
+            size="sm"
+            variant={filter === 'liked' ? 'solid' : 'outline'}
+            colorScheme="green"
+            onClick={() => setFilter('liked')}
+          >
+            Liked ({cards.filter(card => cardFeedback[card.id] === 'like').length})
+          </Button>
+          <Button
+            size="sm"
+            variant={filter === 'disliked' ? 'solid' : 'outline'}
+            colorScheme="red"
+            onClick={() => setFilter('disliked')}
+          >
+            Disliked ({cards.filter(card => cardFeedback[card.id] === 'dislike').length})
+          </Button>
+        </HStack>
       </Flex>
+      
       <HStack spacing={4} overflowX="auto" align="stretch" pb={2}>
-        {cards.map((card, idx) => (
+        {filteredCards.map((card, idx) => (
           <Box
             key={card.id}
             bg="white"
@@ -146,7 +186,7 @@ const ExpandableCards = ({ sessionId, onCardCountChange, spawnTrigger }) => {
             </Tooltip>
             
             <VStack align="stretch" spacing={2} flex="1">
-              <Text fontSize="sm" color="gray.500" fontWeight="bold"># Nudge {idx + 1}</Text>
+              <Text fontSize="sm" color="gray.500" fontWeight="bold"># Nudge {cards.indexOf(card) + 1}</Text>
               <Text fontWeight="bold" fontSize="md" mb={1}>{card.title}</Text>
               <Text fontSize="sm" color="gray.700">{card.shortDescription}</Text>
             </VStack>

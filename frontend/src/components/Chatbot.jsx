@@ -33,6 +33,16 @@ const Chatbot = () => {
   const [sessionStats, setSessionStats] = useState(null);
   const toast = useToast();
   const lastSnapshotRef = React.useRef("");
+  const messagesEndRef = React.useRef(null);
+
+  // Auto-scroll to bottom when new messages are added
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   // Cleanup session when component unmounts
   useEffect(() => {
@@ -289,11 +299,59 @@ const Chatbot = () => {
   const handleCopy = (text) => {
     navigator.clipboard.writeText(text);
     toast({
-      title: "Copied!",
+      title: "Copied to clipboard",
       status: "success",
-      duration: 1000,
+      duration: 2000,
       isClosable: true,
-      position: "top",
+    });
+  };
+
+  // Format assistant messages for better readability
+  const formatAssistantMessage = (content) => {
+    // Split content into lines
+    const lines = content.split('\n');
+    
+    return lines.map((line, index) => {
+      // Check if line contains numbered list items
+      const numberedMatch = line.match(/^(\d+\.\s+)(.+)/);
+      if (numberedMatch) {
+        return (
+          <Box key={index} mb={2}>
+            <Text as="span" fontWeight="bold" color="purple.600">
+              {numberedMatch[1]}
+            </Text>
+            <Text as="span">{numberedMatch[2]}</Text>
+          </Box>
+        );
+      }
+      
+      // Check if line contains bullet points
+      const bulletMatch = line.match(/^(\*\s+)(.+)/);
+      if (bulletMatch) {
+        return (
+          <Box key={index} mb={2} pl={4}>
+            <Text as="span" color="purple.600">• </Text>
+            <Text as="span">{bulletMatch[2]}</Text>
+          </Box>
+        );
+      }
+      
+      // Check if line is a header (starts with **)
+      const headerMatch = line.match(/^\*\*(.+)\*\*$/);
+      if (headerMatch) {
+        return (
+          <Text key={index} fontWeight="bold" fontSize="lg" color="purple.600" mb={2}>
+            {headerMatch[1]}
+          </Text>
+        );
+      }
+      
+      // Regular text line
+      return (
+        <Text key={index} mb={2}>
+          {line}
+        </Text>
+      );
     });
   };
 
@@ -389,7 +447,7 @@ const Chatbot = () => {
                 ml={message.role === "assistant" ? 0 : "auto"}
                 mr={message.role === "user" ? 0 : "auto"}
               >
-                {message.content}
+                {message.role === "assistant" ? formatAssistantMessage(message.content) : message.content}
                 <Tooltip label="Copy" hasArrow>
                   <IconButton
                     icon={<FaRegCopy />}
@@ -465,6 +523,8 @@ const Chatbot = () => {
               )}
             </Box>
           ))}
+          {/* Invisible element to scroll to */}
+          <div ref={messagesEndRef} />
         </VStack>
         {/* Input area */}
         <HStack px={6} pb={6} pt={0} spacing={3} bg="#F6F8FA" flexShrink={0}>

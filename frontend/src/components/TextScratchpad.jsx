@@ -6,6 +6,8 @@ import { FiChevronsRight, FiChevronsLeft } from 'react-icons/fi';
 import { useSession } from '../context/SessionContext';
 import { DownloadIcon } from '@chakra-ui/icons';
 
+const BACKEND_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 const ToggleCardsButton = ({ show, count, onClick }) => (
   <Button
     onClick={onClick}
@@ -46,6 +48,12 @@ const TextScratchpad = ({ sessionId }) => {
   const [isSpawning, setIsSpawning] = useState(false);
   const [spawnTrigger, setSpawnTrigger] = useState(0);
   const spawnIntervalRef = useRef(null);
+  const preservedCardCountRef = useRef(0); // Preserve card count when hidden
+  const [cards, setCards] = useState([]); // Lift cards state up
+  const [isFirstShow, setIsFirstShow] = useState(true); // Track if cards are shown for the first time
+  const [canSpawn, setCanSpawn] = useState(true); // Control if spawning is allowed
+  const canSpawnRef = useRef(true); // Use ref to track current canSpawn state
+  const lastHideTimeRef = useRef(0); // Track when cards were last hidden
 
   const handleTabChange = (index) => {
     setActiveTab(index);
@@ -54,13 +62,73 @@ const TextScratchpad = ({ sessionId }) => {
   // Callback to update card count from ExpandableCards
   const handleCardCountChange = (count) => {
     setCardCount(count);
+    preservedCardCountRef.current = count; // Store the count
   };
+
+  // Callback to update cards from ExpandableCards
+  const handleCardsChange = (newCards) => {
+    setCards(newCards);
+  };
+
+  // Restore card count when cards are shown again
+  useEffect(() => {
+    if (showCards && preservedCardCountRef.current > 0) {
+      setCardCount(preservedCardCountRef.current);
+    }
+  }, [showCards]);
+
+  // Debug: Monitor canSpawn changes
+  useEffect(() => {
+    console.log('canSpawn changed to:', canSpawn);
+    canSpawnRef.current = canSpawn; // Keep ref in sync
+  }, [canSpawn]);
+
+  // Debug: Monitor showCards changes
+  useEffect(() => {
+    console.log('showCards changed to:', showCards);
+  }, [showCards]);
+
+  // Track when cards are shown/hidden to prevent unwanted spawning
+  useEffect(() => {
+    if (showCards) {
+      // Cards are being shown, enable spawning and restart the timer
+      console.log('Cards shown - enabling spawning');
+      setCanSpawn(true);
+      canSpawnRef.current = true; // Update ref immediately
+      setSpawnTrigger(0);
+      // Restart the spawning timer if we have a session
+      if (contextSessionId && isSpawning) {
+        stopSpawning();
+        startSpawning();
+      }
+      // Trigger initial spawn if this is the first show
+      if (isFirstShow && contextSessionId) {
+        setTimeout(() => {
+          setSpawnTrigger(1);
+        }, 1000); // Small delay to ensure everything is set up
+      }
+    } else {
+      // Cards are being hidden, disable spawning and stop the timer
+      console.log('Cards hidden - disabling spawning');
+      setCanSpawn(false);
+      canSpawnRef.current = false; // Update ref immediately
+      setSpawnTrigger(0);
+      setIsFirstShow(false);
+      // Stop the spawning timer
+      if (isSpawning) {
+        stopSpawning();
+      }
+    }
+  }, [showCards]); // Remove other dependencies that might cause conflicts
 
   // Start/stop card spawning based on session
   useEffect(() => {
     if (contextSessionId && !isSpawning) {
       setIsSpawning(true);
-      startSpawning();
+      // Only start spawning if cards are visible
+      if (showCards) {
+        startSpawning();
+      }
     } else if (!contextSessionId && isSpawning) {
       setIsSpawning(false);
       stopSpawning();
@@ -69,20 +137,23 @@ const TextScratchpad = ({ sessionId }) => {
 
   // Update spawn interval when frequency changes
   useEffect(() => {
-    if (isSpawning) {
+    if (isSpawning && showCards) {
       stopSpawning();
       startSpawning();
     }
-  }, [spawnFrequency]);
+  }, [spawnFrequency, showCards]);
 
   const startSpawning = () => {
     if (spawnIntervalRef.current) {
       clearInterval(spawnIntervalRef.current);
     }
     spawnIntervalRef.current = setInterval(() => {
-      // Trigger card spawn
-      if (showCards) {
+      // Use ref to get current state instead of closure
+      if (showCards && canSpawnRef.current) {
+        console.log('Triggering spawn - cards visible and spawning allowed');
         setSpawnTrigger(prev => prev + 1);
+      } else {
+        console.log('Skipping spawn - cards hidden or spawning disabled', { showCards, canSpawn: canSpawnRef.current });
       }
     }, spawnFrequency * 1000);
   };
@@ -166,6 +237,10 @@ const TextScratchpad = ({ sessionId }) => {
     }, 0);
   };
 
+  const handleLogout = () => {
+    window.location.href = `${BACKEND_URL}/api/auth/logout`;
+  };
+
   return (
     <Box display="flex" flexDirection="column" height="100%" width="100%" bg="#F6F8FA" position="relative">
       <Box display="flex" position="relative" zIndex={2}>
@@ -242,7 +317,9 @@ const TextScratchpad = ({ sessionId }) => {
                 <Box mt={2}>
                   <ExpandableCards 
                     sessionId={sessionId} 
-                    onCardCountChange={handleCardCountChange} 
+                    onCardCountChange={handleCardCountChange}
+                    onCardsChange={handleCardsChange}
+                    cards={cards}
                     spawnTrigger={spawnTrigger}
                   />
                 </Box>
@@ -261,27 +338,40 @@ const TextScratchpad = ({ sessionId }) => {
                 <HStack spacing={4} align="center">
                   <ToggleCardsButton show={showCards} count={cardCount} onClick={() => setShowCards((v) => !v)} />
                   {contextSessionId && (
-                    <HStack spacing={3} align="center">
-                      <Text fontSize="sm" color="gray.600" minW="60px">
-                        {formatFrequency(spawnFrequency)}
+                    <VStack spacing={2} align="start">
+                      <Text fontSize="sm" color="gray.600" fontWeight="medium">
+                        Move slider to adjust card frequency
                       </Text>
-                      <Box flex="1" minW="200px" maxW="300px">
-                        <Slider
-                          value={spawnFrequency}
-                          onChange={setSpawnFrequency}
-                          min={15}
-                          max={600}
-                          step={15}
-                          colorScheme="pink"
-                        >
-                          <SliderTrack>
-                            <SliderFilledTrack />
-                          </SliderTrack>
-                          <SliderThumb />
-                        </Slider>
-                      </Box>
-                    </HStack>
+                      <HStack spacing={3} align="center">
+                        <Text fontSize="sm" color="gray.600" minW="60px">
+                          {formatFrequency(spawnFrequency)}
+                        </Text>
+                        <Box flex="1" minW="200px" maxW="300px">
+                          <Slider
+                            value={spawnFrequency}
+                            onChange={setSpawnFrequency}
+                            min={15}
+                            max={600}
+                            step={15}
+                            colorScheme="pink"
+                          >
+                            <SliderTrack>
+                              <SliderFilledTrack />
+                            </SliderTrack>
+                            <SliderThumb />
+                          </Slider>
+                        </Box>
+                      </HStack>
+                    </VStack>
                   )}
+                </HStack>
+                <HStack spacing={2}>
+                  <Button leftIcon={<DownloadIcon />} colorScheme="gray" variant="outline" size="sm" onClick={handleSave}>
+                    Save
+                  </Button>
+                  <Button colorScheme="red" variant="outline" size="sm" onClick={handleLogout}>
+                    Logout
+                  </Button>
                 </HStack>
               </Box>
             </TabPanel>
