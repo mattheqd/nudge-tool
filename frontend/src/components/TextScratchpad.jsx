@@ -366,9 +366,7 @@ const TextScratchpad = ({ sessionId }) => {
                   )}
                 </HStack>
                 <HStack spacing={2}>
-                  <Button leftIcon={<DownloadIcon />} colorScheme="gray" variant="outline" size="sm" onClick={handleSave}>
-                    Save
-                  </Button>
+                 
                   <Button colorScheme="red" variant="outline" size="sm" onClick={handleLogout}>
                     Logout
                   </Button>

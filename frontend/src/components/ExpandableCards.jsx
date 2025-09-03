@@ -17,7 +17,7 @@ import { apiUrl } from '../../api/index.jsx';
 const ExpandableCards = ({ sessionId, onCardCountChange, onCardsChange, cards, spawnTrigger }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [cardFeedback, setCardFeedback] = useState({}); // { cardId: 'like' | 'dislike' }
-  const [filter, setFilter] = useState('all'); // 'all', 'liked', 'disliked'
+  const [filter, setFilter] = useState('all'); // 'all', 'liked', 'disliked', 'neutral'
   const toast = useToast();
 
   console.log('ExpandableCards sessionId:', sessionId);
@@ -41,6 +41,7 @@ const ExpandableCards = ({ sessionId, onCardCountChange, onCardsChange, cards, s
     if (filter === 'all') return true;
     if (filter === 'liked') return cardFeedback[card.id] === 'like';
     if (filter === 'disliked') return cardFeedback[card.id] === 'dislike';
+    if (filter === 'neutral') return !cardFeedback[card.id] || cardFeedback[card.id] === 'neutral';
     return true;
   });
 
@@ -148,6 +149,14 @@ const ExpandableCards = ({ sessionId, onCardCountChange, onCardsChange, cards, s
           >
             Disliked ({cards.filter(card => cardFeedback[card.id] === 'dislike').length})
           </Button>
+          <Button
+            size="sm"
+            variant={filter === 'neutral' ? 'solid' : 'outline'}
+            colorScheme="gray"
+            onClick={() => setFilter('neutral')}
+          >
+            Neutral ({cards.filter(card => !cardFeedback[card.id] || cardFeedback[card.id] === 'neutral').length})
+          </Button>
         </HStack>
       </Flex>
       
@@ -186,7 +195,6 @@ const ExpandableCards = ({ sessionId, onCardCountChange, onCardsChange, cards, s
             </Tooltip>
             
             <VStack align="stretch" spacing={2} flex="1">
-              <Text fontSize="sm" color="gray.500" fontWeight="bold"># Nudge {cards.indexOf(card) + 1}</Text>
               <Text fontWeight="bold" fontSize="md" mb={1}>{card.title}</Text>
               <Text fontSize="sm" color="gray.700">{card.shortDescription}</Text>
             </VStack>
