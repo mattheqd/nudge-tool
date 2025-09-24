@@ -1,0 +1,29 @@
+<svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+  <!-- Outer circle (coin edge) -->
+  <circle cx="16" cy="16" r="15" fill="#C0C0C0" stroke="#A0A0A0" stroke-width="1"/>
+  
+  <!-- Inner decorative border -->
+  <circle cx="16" cy="16" r="13" fill="none" stroke="#8B8B8B" stroke-width="0.5"/>
+  
+  <!-- Large "2" in center -->
+  <text x="16" y="22" font-family="serif" font-size="18" font-weight="bold" text-anchor="middle" fill="#2C2C2C">2</text>
+  
+  <!-- "CENTS" text below -->
+  <text x="16" y="28" font-family="sans-serif" font-size="4" font-weight="bold" text-anchor="middle" fill="#2C2C2C">CENTS</text>
+  
+  <!-- Decorative dots around the edge -->
+  <circle cx="16" cy="4" r="0.8" fill="#8B8B8B"/>
+  <circle cx="28" cy="16" r="0.8" fill="#8B8B8B"/>
+  <circle cx="16" cy="28" r="0.8" fill="#8B8B8B"/>
+  <circle cx="4" cy="16" r="0.8" fill="#8B8B8B"/>
+  
+  <!-- Additional decorative dots -->
+  <circle cx="22" cy="8" r="0.6" fill="#8B8B8B"/>
+  <circle cx="24" cy="12" r="0.6" fill="#8B8B8B"/>
+  <circle cx="24" cy="20" r="0.6" fill="#8B8B8B"/>
+  <circle cx="22" cy="24" r="0.6" fill="#8B8B8B"/>
+  <circle cx="10" cy="8" r="0.6" fill="#8B8B8B"/>
+  <circle cx="8" cy="12" r="0.6" fill="#8B8B8B"/>
+  <circle cx="8" cy="20" r="0.6" fill="#8B8B8B"/>
+  <circle cx="10" cy="24" r="0.6" fill="#8B8B8B"/>
+</svg>

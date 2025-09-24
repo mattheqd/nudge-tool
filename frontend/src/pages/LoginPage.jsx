@@ -22,7 +22,7 @@ export default function LoginPage() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
-      <h1>Sign in to Nudge Tool</h1>
+      <h1>Sign in to Two Cents</h1>
       <button onClick={handleGoogleLogin} style={{ padding: '1em 2em', fontSize: '1.2em', cursor: 'pointer' }}>
         Sign in with Google
       </button>

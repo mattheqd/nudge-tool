@@ -6,7 +6,7 @@ const Navbar = () => {
   return (
     <Box bg="gray.100">
         <Flex h={16} marginLeft={2} marginRight={2} alignItems={"center"} justifyContent={"space-between"} flexDir={{base:"column", sm:"row"}}>
-            <Link to={"/"}  sx={{ fontSize: 'lg' }} >Nudge Tool</Link>
+            <Link to={"/"}  sx={{ fontSize: 'lg' }} >Two Cents</Link>
             <HStack spacing={2} alignItems={"center"}>
                 <Link to={"/login" }  sx={{ fontSize: 'lg' }}>Login</Link>
                 <Link to={"/signup"}  sx={{ fontSize: 'lg' }}>Signup</Link>

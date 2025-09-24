@@ -37,12 +37,12 @@ const HomePage = () => {
         <ModalOverlay />
         <ModalContent maxW="500px" mx={4}>
           <ModalHeader textAlign="center" color="#7B1EA2E5">
-            Welcome to the Nudge Tool! 🎉
+            Welcome to Two Cents! 🎉
           </ModalHeader>
           <ModalBody>
             <VStack spacing={6} align="stretch">
               <Text fontSize="lg" textAlign="center" color="gray.700">
-                Welcome to the Nudge Tool. You will have a scratchpad to do your work and chatbot at your disposal.
+                Welcome to Two Cents. You will have a scratchpad to do your work and chatbot at your disposal.
               </Text>
               
               <VStack spacing={4} align="stretch">
