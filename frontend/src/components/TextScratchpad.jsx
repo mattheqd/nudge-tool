@@ -44,7 +44,7 @@ const TextScratchpad = ({ sessionId }) => {
   const [activeTab, setActiveTab] = useState(0);
   const [showCards, setShowCards] = useState(true);
   const [cardCount, setCardCount] = useState(0);
-  const [spawnFrequency, setSpawnFrequency] = useState(5); // Default 5 seconds for testing
+  const [spawnFrequency, setSpawnFrequency] = useState(60); // Default 1 minute
   const [isSpawning, setIsSpawning] = useState(false);
   const [spawnTrigger, setSpawnTrigger] = useState(0);
   const spawnIntervalRef = useRef(null);

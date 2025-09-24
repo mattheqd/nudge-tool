@@ -16,7 +16,7 @@ import {
   InputRightElement,
   Flex,
 } from '@chakra-ui/react';
-import { FaArrowAltCircleRight, FaSync, FaRegCopy, FaThumbsUp, FaThumbsDown, FaRedo } from "react-icons/fa";
+import { FaArrowAltCircleRight, FaSync, FaRegCopy, FaThumbsUp, FaThumbsDown, FaRedo, FaTrash } from "react-icons/fa";
 import { DownloadIcon } from '@chakra-ui/icons';
 import spin from '../assets/spin.png';
 import { sessionApi } from '../../api/sessionApi.js';
@@ -384,6 +384,20 @@ const Chatbot = () => {
     }, 0);
   };
 
+  // Clear chat handler
+  const handleClearChat = () => {
+    setMessages([]);
+    setFeedback({});
+    toast({
+      title: "Chat cleared",
+      description: "All messages have been removed from the chat",
+      status: "success",
+      duration: 2000,
+      isClosable: true,
+      position: "top",
+    });
+  };
+
   return (
     <Box display="flex" flexDirection="column" height="100%" width="100%" bg="#F6F8FA" position="relative">
       <Box display="flex" position="relative" zIndex={2} flexShrink={0}>
@@ -392,10 +406,14 @@ const Chatbot = () => {
             <Box fontWeight="bold" fontSize="lg" color="gray.800">
               Chat
             </Box>
-             {/* Accent bar at bottom */}
-            <Button leftIcon={<DownloadIcon />} colorScheme="gray" variant="outline" size="sm" onClick={handleSave}>
-              Save
-            </Button>
+            <HStack spacing={2}>
+              <Button leftIcon={<FaTrash />} colorScheme="red" variant="outline" size="sm" onClick={handleClearChat}>
+                Clear
+              </Button>
+              <Button leftIcon={<DownloadIcon />} colorScheme="gray" variant="outline" size="sm" onClick={handleSave}>
+                Save
+              </Button>
+            </HStack>
           </Flex>
          
         </Box>
